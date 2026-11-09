@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* The brand color comes from BRAND_PRIMARY_COLOR at runtime (see brand.tsx), so one build
+   serves every white-label deployment. */
+@theme {
+  --color-brand: var(--brand, #4f46e5);
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}

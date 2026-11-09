@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from flask import Blueprint, abort, jsonify
+from flask import Blueprint, abort, current_app, jsonify, request
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.exc import IntegrityError
 
@@ -12,6 +12,14 @@ from nexus.security import current_user, hash_password, login_required
 from nexus.validation import parse_body
 
 bp = Blueprint("users", __name__, url_prefix="/api/users")
+
+
+@bp.before_request
+def _read_only_in_demo():
+    # The public demo shares one admin account: nobody may lock the others out.
+    if current_app.config["NEXUS"].demo_mode and request.method != "GET":
+        return jsonify(error="demo_mode", message="User management is read-only in the demo"), 403
+    return None
 
 
 class UserIn(BaseModel):

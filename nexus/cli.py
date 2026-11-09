@@ -44,3 +44,13 @@ def register_cli(app: Flask) -> None:
 
         result = flush(get_session(), get_provider(), app.config["NEXUS"].outbox_max_attempts)
         click.echo(f"processed={result.processed} synced={result.synced} failed={result.failed}")
+
+    @app.cli.command("seed-demo")
+    def seed_demo_cmd() -> None:
+        """Load fictional sample data (idempotent)."""
+        from nexus.demo import DEMO_ADMIN_EMAIL, DEMO_PASSWORD, seed_demo
+
+        if seed_demo(get_session()):
+            click.echo(f"Demo data loaded. Log in as {DEMO_ADMIN_EMAIL} / {DEMO_PASSWORD}")
+        else:
+            click.echo("Demo data already present.")

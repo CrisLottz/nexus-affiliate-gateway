@@ -49,9 +49,20 @@ def create_app(overrides: dict[str, Any] | None = None) -> Flask:
     limiter.init_app(app)
     register_cli(app)
 
-    from nexus.blueprints import auth, dashboard, health, internal, leads, promoters, public, users
+    from nexus.blueprints import (
+        auth,
+        dashboard,
+        health,
+        internal,
+        leads,
+        promoters,
+        public,
+        spa,
+        users,
+    )
 
-    for module in (health, auth, users, promoters, leads, dashboard, public, internal):
+    # spa goes last: its catch-all route must not shadow the API.
+    for module in (health, auth, users, promoters, leads, dashboard, public, internal, spa):
         app.register_blueprint(module.bp)
 
     _register_error_handlers(app)
