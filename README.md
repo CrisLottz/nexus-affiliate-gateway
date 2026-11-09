@@ -62,7 +62,7 @@ flowchart LR
 | Backend | **Flask** (app factory + blueprints) | Small, explicit; every piece is chosen and wired by hand |
 | ORM / migrations | **SQLAlchemy 2.0 + Alembic** | Typed models; schema changes through versioned migrations, never `create_all()` |
 | Validation | **Pydantic** | Request and config validation |
-| Auth | Server-side sessions, hashed passwords, CSRF protection, login rate limiting | Simple and safe for a same-origin SPA |
+| Auth | Signed session cookies with server-side revocation (`session_version`), hashed passwords, CSRF protection, login rate limiting | Simple and safe for a same-origin SPA |
 | Database | **SQLite** (local) / **Postgres on Neon** (production) | Cloud Run's filesystem is ephemeral, so production data lives in a managed Postgres |
 | Frontend | **React + TypeScript + Tailwind** (Vite) | Built once and served as static files by Flask |
 | CRM | **HubSpot** (free CRM, private app token) + Mock | Real integration anyone can reproduce for free |
@@ -90,8 +90,8 @@ flowchart LR
 
 - [ ] **0. Setup** — Google Cloud project with a budget alert, free HubSpot account, Neon database
 - [x] **1. Skeleton** — Flask app factory, blueprints, per-environment config, pytest, ruff, CI on GitHub Actions
-- [ ] **2. Data model** — `User`, `Promoter`, `Lead`, `OutboxEvent` with Alembic migrations
-- [ ] **3. Auth** — sessions, password hashing, CSRF, admin/collaborator roles, login rate limiting
+- [x] **2. Data model** — `User`, `Promoter`, `Lead`, `OutboxEvent` with Alembic migrations
+- [x] **3. Auth** — sessions, password hashing, CSRF, admin/collaborator roles, login rate limiting
 - [ ] **4. Referral flow** — public `/join?ref=` form that stores the lead locally first
 - [ ] **5. CRM adapters** — `CRMProvider` interface, Mock and HubSpot providers, outbox with retries
 - [ ] **6. Dashboards** — per-promoter counts and leaderboard with today / week / month / all-time filters
