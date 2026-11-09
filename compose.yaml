@@ -1,0 +1,35 @@
+# Local stack: Nexus + Postgres, as close to production as a laptop gets.
+#   docker compose up --build
+#   open http://localhost:8080  (demo login is shown on the page)
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexus-local-only
+      POSTGRES_DB: nexus
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nexus"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      NEXUS_ENV: development
+      SECRET_KEY: local-compose-secret-key-change-me
+      DATABASE_URL: postgresql://nexus:nexus-local-only@db:5432/nexus
+      CRM_PROVIDER: mock
+      INTERNAL_TOKEN: local-internal-token
+      DEMO_MODE: "true"
+
+volumes:
+  pgdata:

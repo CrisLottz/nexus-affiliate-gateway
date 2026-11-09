@@ -18,3 +18,59 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: pytest --cov=nexus --cov-report=term-missing
+
+  postgres:
+    # Same suite against real Postgres: GROUP BY rules, FOR UPDATE SKIP LOCKED, JSON columns.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: nexus
+          POSTGRES_PASSWORD: nexus
+          POSTGRES_DB: nexus_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U nexus" --health-interval 2s --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: pytest
+        env:
+          TEST_DATABASE_URL: postgresql://nexus:nexus@localhost:5432/nexus_test
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  docker:
+    # Builds the production image and boots it with docker compose (app + Postgres, demo mode).
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose up --build --detach --wait --wait-timeout 180
+      - name: Smoke test
+        run: |
+          curl --fail --silent http://localhost:8080/healthz
+          curl --fail --silent http://localhost:8080/api/config | grep '"enabled":true'
+          curl --fail --silent http://localhost:8080/join | grep '<div id="root">'
+      - if: failure()
+        run: docker compose logs
+      - if: always()
+        run: docker compose down --volumes

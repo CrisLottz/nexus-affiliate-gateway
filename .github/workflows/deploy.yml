@@ -1,0 +1,58 @@
+name: Deploy to Cloud Run
+
+# Disabled until the Google Cloud project exists: it only runs when the repository variable
+# DEPLOY_ENABLED is "true" (Settings → Secrets and variables → Actions → Variables).
+# Setup steps: docs/deploy-cloud-run.md
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # Workload Identity Federation: GitHub's OIDC token, no JSON key
+    env:
+      REGION: ${{ vars.GCP_REGION }}
+      SERVICE: ${{ vars.CLOUD_RUN_SERVICE }}
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/nexus/nexus:${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WIF_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Build and push the image
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build -t "$IMAGE" .
+          docker push "$IMAGE"
+
+      - name: Deploy
+        run: |
+          gcloud run deploy "$SERVICE" \
+            --image "$IMAGE" \
+            --region "$REGION" \
+            --service-account "${{ vars.GCP_RUNTIME_SA }}" \
+            --allow-unauthenticated \
+            --max-instances 2 \
+            --memory 512Mi \
+            --set-env-vars "NEXUS_ENV=production,CRM_PROVIDER=${{ vars.CRM_PROVIDER || 'mock' }},DEMO_MODE=${{ vars.DEMO_MODE || 'false' }},BRAND_NAME=${{ vars.BRAND_NAME || 'Nexus' }}" \
+            --set-secrets "SECRET_KEY=nexus-secret-key:latest,DATABASE_URL=nexus-database-url:latest,INTERNAL_TOKEN=nexus-internal-token:latest${{ vars.CRM_PROVIDER == 'hubspot' && ',HUBSPOT_TOKEN=nexus-hubspot-token:latest' || '' }}"
+
+      - name: Smoke test
+        run: |
+          URL=$(gcloud run services describe "$SERVICE" --region "$REGION" --format 'value(status.url)')
+          curl --fail --retry 5 --retry-delay 3 "$URL/healthz"
