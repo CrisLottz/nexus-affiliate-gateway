@@ -95,7 +95,7 @@ flowchart LR
 - [x] **4. Referral flow** — public `/join?ref=` form that stores the lead locally first
 - [x] **5. CRM adapters** — `CRMProvider` interface, Mock and HubSpot providers, outbox with retries
 - [x] **6. Dashboards** — per-promoter counts and leaderboard with today / week / month / all-time filters
-- [ ] **7. Frontend** — React + TypeScript + Tailwind served by Flask, white-label theming, EN/ES
+- [x] **7. Frontend** — React + TypeScript + Tailwind served by Flask, white-label theming, EN/ES
 - [ ] **8. Containers** — Dockerfile with Gunicorn, docker compose with Postgres for local development
 - [ ] **9. Deploy** — Cloud Run, Secret Manager, Cloud Scheduler for the outbox, automatic deploys from GitHub Actions
 - [ ] **10. Release** — demo mode with sample data, architecture docs, screenshots, v1.0
