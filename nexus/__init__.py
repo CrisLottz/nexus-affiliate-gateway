@@ -39,17 +39,19 @@ def create_app(overrides: dict[str, Any] | None = None) -> Flask:
         app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 
     from nexus.cli import register_cli
+    from nexus.crm import init_crm
     from nexus.db import init_db
     from nexus.extensions import csrf, limiter
 
     init_db(app)
+    init_crm(app)
     csrf.init_app(app)
     limiter.init_app(app)
     register_cli(app)
 
-    from nexus.blueprints import auth, health, promoters, users
+    from nexus.blueprints import auth, dashboard, health, internal, leads, promoters, public, users
 
-    for module in (health, auth, users, promoters):
+    for module in (health, auth, users, promoters, leads, dashboard, public, internal):
         app.register_blueprint(module.bp)
 
     _register_error_handlers(app)

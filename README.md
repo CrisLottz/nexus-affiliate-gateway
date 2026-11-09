@@ -92,9 +92,9 @@ flowchart LR
 - [x] **1. Skeleton** — Flask app factory, blueprints, per-environment config, pytest, ruff, CI on GitHub Actions
 - [x] **2. Data model** — `User`, `Promoter`, `Lead`, `OutboxEvent` with Alembic migrations
 - [x] **3. Auth** — sessions, password hashing, CSRF, admin/collaborator roles, login rate limiting
-- [ ] **4. Referral flow** — public `/join?ref=` form that stores the lead locally first
-- [ ] **5. CRM adapters** — `CRMProvider` interface, Mock and HubSpot providers, outbox with retries
-- [ ] **6. Dashboards** — per-promoter counts and leaderboard with today / week / month / all-time filters
+- [x] **4. Referral flow** — public `/join?ref=` form that stores the lead locally first
+- [x] **5. CRM adapters** — `CRMProvider` interface, Mock and HubSpot providers, outbox with retries
+- [x] **6. Dashboards** — per-promoter counts and leaderboard with today / week / month / all-time filters
 - [ ] **7. Frontend** — React + TypeScript + Tailwind served by Flask, white-label theming, EN/ES
 - [ ] **8. Containers** — Dockerfile with Gunicorn, docker compose with Postgres for local development
 - [ ] **9. Deploy** — Cloud Run, Secret Manager, Cloud Scheduler for the outbox, automatic deploys from GitHub Actions
