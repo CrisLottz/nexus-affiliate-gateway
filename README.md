@@ -2,7 +2,37 @@
 
 **White-label referral tracking for promoter-driven lead generation.** Each promoter gets a personal referral link; every lead that signs up through it is stored with its attribution, synced to your CRM, and counted on a live leaderboard.
 
-> **Status: planned.** This README is the design and the build plan. No code yet — see the [roadmap](#roadmap).
+> **Status: v1 feature-complete, not deployed yet.** Steps 1–8 and 10 of the [roadmap](#roadmap) are done and tested; the Cloud Run deploy workflow is written and waits for the cloud accounts (step 0/9).
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+## Quick start
+
+**With Docker** (app + Postgres, demo data, no accounts needed):
+
+```bash
+docker compose up --build
+# open http://localhost:8080 — the demo login is shown on the page
+```
+
+**Without Docker:**
+
+```bash
+python -m venv .venv && .venv/bin/pip install -e ".[dev]"   # Windows: .venv\Scripts\pip
+cp .env.example .env                                        # set SECRET_KEY
+flask --app nexus migrate
+flask --app nexus seed-demo                                 # optional sample data
+cd frontend && npm ci && npm run build && cd ..
+flask --app nexus run                                       # http://127.0.0.1:5000
+```
+
+Try a referral: copy a link from **Promoters**, open it in a private window, submit the form, and watch the lead appear in **Leads** and on the leaderboard.
+
+| Doc | What it covers |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | Guided code walkthrough: why each piece is built the way it is |
+| [docs/hubspot.md](docs/hubspot.md) | HubSpot property, private app and error handling |
+| [docs/deploy-cloud-run.md](docs/deploy-cloud-run.md) | One-time Google Cloud + Neon setup, secrets, Workload Identity Federation, Cloud Scheduler |
 
 ## The problem
 
@@ -80,10 +110,36 @@ flowchart LR
 - **No secret has a default value.** The app refuses to start without `SECRET_KEY` and, when HubSpot is enabled, without its token.
 - **Costs are capped.** Cloud Run runs with a low `max-instances` and the project has a budget alert, so even abuse of the public demo cannot produce a surprise bill.
 
+## API
+
+| Method | Path | Who |
+|---|---|---|
+| `GET` | `/api/public/promoters/<ref>` | Public — display name for "Referred by" |
+| `POST` | `/api/public/leads` | Public — the referral form (rate limited, honeypot) |
+| `GET` | `/api/auth/csrf` · `POST /api/auth/login` · `POST /api/auth/logout` · `GET /api/auth/me` | Session auth |
+| `GET` `POST` `PATCH` | `/api/promoters`, `/api/promoters/<id>`, `…/archive`, `…/unarchive` | Read: logged in · write: admin |
+| `GET` | `/api/leads?q=&crm_status=&promoter_id=&page=` | Logged in |
+| `POST` | `/api/leads/<id>/retry` | Admin |
+| `GET` | `/api/dashboard/summary` · `/api/dashboard/leaderboard` `?period=today\|week\|month\|all&tz=` | Logged in |
+| `GET` `POST` `PATCH` | `/api/users` | Admin |
+| `POST` | `/internal/outbox/flush` | `Authorization: Bearer $INTERNAL_TOKEN` (Cloud Scheduler) |
+| `GET` | `/healthz` | Liveness probe |
+
+## Tests and CI
+
+```bash
+pytest                      # SQLite, the real Alembic migrations, ~60 tests
+ruff check . && ruff format --check .
+```
+
+CI runs the suite on SQLite **and** on a Postgres 17 service, type-checks and builds the frontend, and builds the Docker image and boots it with `docker compose` before every merge.
+
 ## Known limitations
 
 - **Cold starts:** after a period without traffic, the first request takes a few seconds while Cloud Run starts an instance.
 - **HubSpot free plan:** it allows only a small number of custom properties, so Nexus uses one or two at most.
+- **Rate limits are per instance** (in-memory storage). Fine with `max-instances 2`; use Redis beyond that.
+- **Demo mode is shared:** everyone uses the same demo admin, so user management is read-only there.
 - **Retry latency:** a lead that failed to sync reaches the CRM on the next scheduler run (minutes), not instantly.
 
 ## Roadmap
@@ -96,9 +152,9 @@ flowchart LR
 - [x] **5. CRM adapters** — `CRMProvider` interface, Mock and HubSpot providers, outbox with retries
 - [x] **6. Dashboards** — per-promoter counts and leaderboard with today / week / month / all-time filters
 - [x] **7. Frontend** — React + TypeScript + Tailwind served by Flask, white-label theming, EN/ES
-- [ ] **8. Containers** — Dockerfile with Gunicorn, docker compose with Postgres for local development
-- [ ] **9. Deploy** — Cloud Run, Secret Manager, Cloud Scheduler for the outbox, automatic deploys from GitHub Actions
-- [ ] **10. Release** — demo mode with sample data, architecture docs, screenshots, v1.0
+- [x] **8. Containers** — Dockerfile with Gunicorn, docker compose with Postgres for local development
+- [ ] **9. Deploy** — Cloud Run, Secret Manager, Cloud Scheduler for the outbox, automatic deploys from GitHub Actions *(workflow and guide ready; needs the cloud accounts)*
+- [ ] **10. Release** — demo mode with sample data, architecture docs, screenshots, v1.0 *(all done except the public demo URL and the v1.0 tag, which follow the deploy)*
 
 ## License
 

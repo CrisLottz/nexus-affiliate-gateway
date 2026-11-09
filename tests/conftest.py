@@ -1,26 +1,45 @@
 from __future__ import annotations
 
+import os
+
 import pytest
+from alembic import command
 
 from nexus import create_app
+from nexus.config import Settings
 from nexus.db import get_session
-from nexus.migrate import upgrade
+from nexus.migrate import alembic_config, upgrade
 from nexus.models import Role, User
 from nexus.security import hash_password
 
 PASSWORD = "correct-horse-battery"
 
 
+SECRET = "test-secret-key-0123456789"
+
+
 @pytest.fixture
 def make_app(tmp_path):
-    """Build an app on a fresh SQLite file migrated with Alembic (the real migrations)."""
+    """Build an app on a fresh database migrated with Alembic (the real migrations).
+
+    SQLite file per test by default. With TEST_DATABASE_URL (CI sets a Postgres service), the
+    schema is dropped and re-migrated before each test instead.
+    """
+    external = os.environ.get("TEST_DATABASE_URL")
+    state = {"reset": False}
 
     def _make(**overrides):
-        url = f"sqlite:///{tmp_path / 'test.db'}"
+        if external:
+            url = Settings(_env_file=None, secret_key=SECRET, database_url=external).database_url
+            if not state["reset"]:
+                command.downgrade(alembic_config(url), "base")
+                state["reset"] = True
+        else:
+            url = f"sqlite:///{tmp_path / 'test.db'}"
         upgrade(url)
         settings = {
             "nexus_env": "test",
-            "secret_key": "test-secret-key-0123456789",
+            "secret_key": SECRET,
             "database_url": url,
         }
         settings.update(overrides)
