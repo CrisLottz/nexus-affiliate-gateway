@@ -89,7 +89,7 @@ flowchart LR
 ## Roadmap
 
 - [ ] **0. Setup** — Google Cloud project with a budget alert, free HubSpot account, Neon database
-- [ ] **1. Skeleton** — Flask app factory, blueprints, per-environment config, pytest, ruff, CI on GitHub Actions
+- [x] **1. Skeleton** — Flask app factory, blueprints, per-environment config, pytest, ruff, CI on GitHub Actions
 - [ ] **2. Data model** — `User`, `Promoter`, `Lead`, `OutboxEvent` with Alembic migrations
 - [ ] **3. Auth** — sessions, password hashing, CSRF, admin/collaborator roles, login rate limiting
 - [ ] **4. Referral flow** — public `/join?ref=` form that stores the lead locally first
