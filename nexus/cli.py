@@ -35,3 +35,12 @@ def register_cli(app: Flask) -> None:
         )
         db.commit()
         click.echo(f"Created {role} {email}")
+
+    @app.cli.command("outbox-flush")
+    def outbox_flush_cmd() -> None:
+        """Retry pending CRM syncs once (what Cloud Scheduler triggers in production)."""
+        from nexus.crm import get_provider
+        from nexus.outbox import flush
+
+        result = flush(get_session(), get_provider(), app.config["NEXUS"].outbox_max_attempts)
+        click.echo(f"processed={result.processed} synced={result.synced} failed={result.failed}")
